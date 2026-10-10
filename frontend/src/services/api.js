@@ -6,6 +6,109 @@ function getAuthHeader() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// Full client-side matching taxonomy identical to backend
+const CLIENT_SKILLS_TAXONOMY = {
+  languages: [
+    { name: "JavaScript", regex: /\b(JavaScript|JS|ES6\+?)\b/i },
+    { name: "TypeScript", regex: /\b(TypeScript|TS)\b/i },
+    { name: "Python", regex: /\b(Python|Py)\b/i },
+    { name: "Java", regex: /\b(Java)\b/i },
+    { name: "C++", regex: /\b(C\+\+)\b/i },
+    { name: "C#", regex: /\b(C#|\.NET)\b/i },
+    { name: "Golang", regex: /\b(Golang|Go\s+language|\bGo\b(?!\s+(to|for|with|back|into|through)))\b/i },
+    { name: "Rust", regex: /\b(Rust)\b/i },
+    { name: "SQL", regex: /\b(SQL)\b/i },
+    { name: "HTML5", regex: /\b(HTML5?)\b/i },
+    { name: "CSS3", regex: /\b(CSS3?)\b/i }
+  ],
+  frontend: [
+    { name: "React", regex: /\b(React|React\.?js|ReactJS)\b/i },
+    { name: "Next.js", regex: /\b(Next|Next\.?js|NextJS)\b/i },
+    { name: "Vue.js", regex: /\b(Vue|Vue\.?js|VueJS)\b/i },
+    { name: "Angular", regex: /\b(Angular|AngularJS)\b/i },
+    { name: "Tailwind CSS", regex: /\b(Tailwind|Tailwind\s*CSS)\b/i },
+    { name: "Redux", regex: /\b(Redux|Redux\s*Toolkit)\b/i },
+    { name: "Web Performance", regex: /\b(Web\s*Performance|Core\s*Web\s*Vitals|Lighthouse|LCP|FID|CLS)\b/i },
+    { name: "Accessibility (a11y)", regex: /\b(Accessibility|a11y|WCAG|ARIA)\b/i },
+    { name: "Vite", regex: /\b(Vite|ViteJS)\b/i },
+    { name: "Responsive Design", regex: /\b(Responsive\s*Design|Mobile-first)\b/i }
+  ],
+  backend: [
+    { name: "Node.js", regex: /\b(Node|Node\.?js|NodeJS)\b/i },
+    { name: "Express.js", regex: /\b(Express|Express\.?js)\b/i },
+    { name: "FastAPI", regex: /\b(FastAPI)\b/i },
+    { name: "Django", regex: /\b(Django)\b/i },
+    { name: "Spring Boot", regex: /\b(Spring\s*Boot|Spring\s*Framework)\b/i },
+    { name: "REST APIs", regex: /\b(REST|RESTful|REST\s*APIs?)\b/i },
+    { name: "GraphQL", regex: /\b(GraphQL|Apollo)\b/i },
+    { name: "Microservices", regex: /\b(Microservices?|Microservice\s*architecture)\b/i },
+    { name: "System Design", regex: /\b(System\s*Design|Distributed\s*Systems)\b/i }
+  ],
+  databases: [
+    { name: "MongoDB", regex: /\b(MongoDB|Mongo|Mongoose)\b/i },
+    { name: "PostgreSQL", regex: /\b(PostgreSQL|Postgres)\b/i },
+    { name: "MySQL", regex: /\b(MySQL)\b/i },
+    { name: "Redis", regex: /\b(Redis)\b/i }
+  ],
+  devops: [
+    { name: "Docker", regex: /\b(Docker|Containerization)\b/i },
+    { name: "Kubernetes", regex: /\b(Kubernetes|K8s)\b/i },
+    { name: "AWS", regex: /\b(AWS|Amazon\s*Web\s*Services|EC2|S3)\b/i },
+    { name: "CI/CD", regex: /\b(CI\/CD|Continuous\s*Integration|GitHub\s*Actions|Jenkins)\b/i },
+    { name: "Terraform", regex: /\b(Terraform)\b/i },
+    { name: "Linux", regex: /\b(Linux|Ubuntu|CentOS|Bash)\b/i },
+    { name: "Git", regex: /\b(Git|GitHub|GitLab)\b/i }
+  ],
+  aiData: [
+    { name: "Machine Learning", regex: /\b(Machine\s*Learning|ML)\b/i },
+    { name: "Deep Learning", regex: /\b(Deep\s*Learning|Neural\s*Networks)\b/i },
+    { name: "TensorFlow", regex: /\b(TensorFlow)\b/i },
+    { name: "PyTorch", regex: /\b(PyTorch)\b/i },
+    { name: "Pandas", regex: /\b(Pandas)\b/i },
+    { name: "NumPy", regex: /\b(NumPy)\b/i },
+    { name: "Scikit-Learn", regex: /\b(Scikit-Learn|sklearn)\b/i }
+  ],
+  security: [
+    { name: "JWT", regex: /\b(JWT|JSON\s*Web\s*Tokens?)\b/i },
+    { name: "OAuth", regex: /\b(OAuth|OAuth2)\b/i }
+  ]
+};
+
+const CLIENT_ROLE_REQUIREMENTS = {
+  "fullstack": {
+    name: "Full Stack Engineer",
+    mustHave: ["React", "Node.js", "Express.js", "MongoDB", "JavaScript", "TypeScript", "REST APIs", "Git"],
+    goodToHave: ["Docker", "PostgreSQL", "Tailwind CSS", "JWT", "CI/CD", "Next.js", "System Design", "Redis", "Microservices"]
+  },
+  "frontend": {
+    name: "Frontend Engineer",
+    mustHave: ["React", "JavaScript", "TypeScript", "HTML5", "CSS3", "Tailwind CSS", "Responsive Design", "Git"],
+    goodToHave: ["Next.js", "Redux", "Web Performance", "Accessibility (a11y)", "Vite", "GraphQL"]
+  },
+  "backend": {
+    name: "Backend Engineer",
+    mustHave: ["Node.js", "Express.js", "Python", "SQL", "MongoDB", "REST APIs", "Git", "System Design"],
+    goodToHave: ["PostgreSQL", "Docker", "Redis", "Microservices", "JWT", "AWS", "GraphQL", "CI/CD"]
+  },
+  "datascientist": {
+    name: "Data Scientist",
+    mustHave: ["Python", "SQL", "Pandas", "NumPy", "Scikit-Learn", "Machine Learning", "Git"],
+    goodToHave: ["TensorFlow", "PyTorch", "Deep Learning", "AWS"]
+  },
+  "devops": {
+    name: "DevOps Engineer",
+    mustHave: ["Docker", "Kubernetes", "AWS", "CI/CD", "Linux", "Git", "Terraform"],
+    goodToHave: ["Python", "Prometheus", "Grafana", "Security"]
+  }
+};
+
+const CLIENT_ACTION_VERBS = [
+  "engineered", "architected", "spearheaded", "developed", "implemented", 
+  "optimized", "scaled", "refactored", "built", "designed", "deployed", 
+  "automated", "integrated", "managed", "led", "boosted", "reduced", 
+  "increased", "transformed", "streamlined", "orchestrated", "pioneered"
+];
+
 export const api = {
   // Auth
   async login(email, password) {
@@ -19,7 +122,7 @@ export const api = {
       if (!res.ok) throw new Error(data.error || "Login failed");
       return data;
     } catch (err) {
-      console.warn("Backend API offline or error, using client fallback auth", err);
+      console.warn("Backend API offline or error:", err.message);
       // Demo Fallback
       if (email && password) {
         const mockUser = { id: "usr_demo", name: email.split("@")[0] || "Demo User", email, targetRole: "Fullstack Engineer" };
@@ -41,7 +144,7 @@ export const api = {
       if (!res.ok) throw new Error(data.error || "Registration failed");
       return data;
     } catch (err) {
-      console.warn("Backend API offline or error, using client fallback register", err);
+      console.warn("Backend API offline, using client-side registration fallback:", err.message);
       const mockUser = { id: "usr_" + Date.now(), name, email, targetRole: targetRole || "Fullstack Engineer" };
       const mockToken = "mock_jwt_token_" + Date.now();
       return { token: mockToken, user: mockUser };
@@ -63,8 +166,8 @@ export const api = {
       if (!res.ok) throw new Error(data.error || "Analysis failed");
       return data.data;
     } catch (err) {
-      console.warn("Backend API offline, using fallback parser", err);
-      return fallbackAnalyzeResume(resumeText, targetRole);
+      console.warn("Backend API unreachable, using client NLP analyzer:", err.message);
+      return dynamicClientAnalyzeResume(resumeText, targetRole);
     }
   },
 
@@ -126,26 +229,180 @@ export const api = {
   }
 };
 
-// Client-side fallbacks for instantaneous UI feedback if offline
-function fallbackAnalyzeResume(resumeText, targetRole = "Fullstack Engineer") {
-  const matched = ["React", "Node.js", "JavaScript", "REST APIs", "Git"];
-  const missing = ["Docker", "MongoDB", "System Design", "CI/CD"];
+/**
+ * 100% Dynamic, Real Client-Side Resume Analysis Engine
+ * Uses identical multi-factor NLP regex taxonomy as backend.
+ */
+function dynamicClientAnalyzeResume(resumeText, targetRole = "Fullstack Engineer") {
+  const rawText = resumeText || "";
+  const words = rawText.trim().split(/\s+/).filter(Boolean);
+  const wordCount = words.length;
+
+  const roleLower = (targetRole || "").toLowerCase();
+  let roleKey = "fullstack";
+  if (roleLower.includes("front")) roleKey = "frontend";
+  else if (roleLower.includes("back")) roleKey = "backend";
+  else if (roleLower.includes("data") || roleLower.includes("ai")) roleKey = "datascientist";
+  else if (roleLower.includes("devops") || roleLower.includes("cloud")) roleKey = "devops";
+
+  const roleConfig = CLIENT_ROLE_REQUIREMENTS[roleKey] || CLIENT_ROLE_REQUIREMENTS["fullstack"];
+
+  // Scan ALL Detected Skills
+  const allDetectedSkills = new Set();
+  Object.values(CLIENT_SKILLS_TAXONOMY).forEach(categorySkills => {
+    categorySkills.forEach(skill => {
+      if (skill.regex.test(rawText)) {
+        allDetectedSkills.add(skill.name);
+      }
+    });
+  });
+
+  const matchedCoreSkills = [];
+  const missingCoreSkills = [];
+  roleConfig.mustHave.forEach(skillName => {
+    if (allDetectedSkills.has(skillName)) matchedCoreSkills.push(skillName);
+    else missingCoreSkills.push(skillName);
+  });
+
+  const matchedGoodToHave = [];
+  const missingGoodToHave = [];
+  roleConfig.goodToHave.forEach(skillName => {
+    if (allDetectedSkills.has(skillName)) matchedGoodToHave.push(skillName);
+    else missingGoodToHave.push(skillName);
+  });
+
+  const mustHaveRatio = matchedCoreSkills.length / roleConfig.mustHave.length;
+  const goodToHaveRatio = matchedGoodToHave.length / roleConfig.goodToHave.length;
+  const keywordScore = Math.min(35, Math.round((mustHaveRatio * 25) + (goodToHaveRatio * 10)));
+
+  // Metrics
+  const metricRegex = /\b(\d+%\s*|\$\s*[\d,.]+[kmb]?|\b\d+\s*(users|clients|customers|projects|ms|sec|x|fold|requests|engineers|team members)\b)/gi;
+  const detectedMetrics = Array.from(new Set(rawText.match(metricRegex) || [])).slice(0, 6);
+  let impactScore = 5;
+  if (detectedMetrics.length >= 4) impactScore = 25;
+  else if (detectedMetrics.length === 3) impactScore = 20;
+  else if (detectedMetrics.length === 2) impactScore = 15;
+  else if (detectedMetrics.length === 1) impactScore = 10;
+
+  // Verbs
+  const textLower = rawText.toLowerCase();
+  const detectedVerbs = Array.from(new Set(CLIENT_ACTION_VERBS.filter(v => textLower.includes(v)))).slice(0, 8);
+  const verbScore = Math.min(15, Math.round((detectedVerbs.length / 5) * 15));
+
+  // Contacts
+  const hasEmail = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/.test(rawText);
+  const hasPhone = /\b(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/.test(rawText);
+  const hasLinkedIn = /(linkedin\.com\/in\/|linkedin\.com)/i.test(rawText);
+  const hasGitHub = /(github\.com\/|gitlab\.com\/)/i.test(rawText);
+
+  let contactScore = 0;
+  if (hasEmail) contactScore += 5;
+  if (hasPhone) contactScore += 3;
+  if (hasLinkedIn) contactScore += 4;
+  if (hasGitHub) contactScore += 3;
+  contactScore = Math.min(15, contactScore);
+
+  // Structure
+  const SECTIONS = [
+    { name: "Contact Information", regex: /\b(contact|email|phone|linkedin|github)\b/i },
+    { name: "Summary / Objective", regex: /\b(summary|objective|profile|about\s*me)\b/i },
+    { name: "Technical Skills", regex: /\b(skills|technical\s*skills|technologies|tech\s*stack)\b/i },
+    { name: "Work Experience", regex: /\b(experience|work\s*history|employment)\b/i },
+    { name: "Education", regex: /\b(education|academic|degree|university)\b/i },
+    { name: "Projects", regex: /\b(projects|portfolio)\b/i }
+  ];
+  const detectedSections = SECTIONS.filter(s => s.regex.test(rawText)).map(s => s.name);
+  let structureScore = 4;
+  if (detectedSections.length >= 5) structureScore = 10;
+  else if (detectedSections.length >= 3) structureScore = 7;
+  if (wordCount < 120) structureScore = Math.max(2, structureScore - 3);
+
+  const totalScore = Math.min(98, Math.max(20, keywordScore + impactScore + verbScore + contactScore + structureScore));
+
+  let atsCompatibility = "Needs Improvement";
+  if (totalScore >= 82) atsCompatibility = "Excellent (Top 5% Candidate)";
+  else if (totalScore >= 68) atsCompatibility = "Good (Strong ATS Pass Rate)";
+  else if (totalScore >= 50) atsCompatibility = "Moderate (Average Match)";
+
+  const feedback = [];
+  if (detectedMetrics.length >= 3) {
+    feedback.push({
+      type: "positive",
+      title: "Strong Metric-Driven Accomplishments",
+      detail: `Identified ${detectedMetrics.length} measurable metrics (e.g. "${detectedMetrics.slice(0, 2).join('", "')}"). Recruiter callbacks improve by over 40% when accomplishments are quantified.`
+    });
+  } else {
+    feedback.push({
+      type: "warning",
+      title: "Add More Quantifiable Metrics",
+      detail: `Only found ${detectedMetrics.length} metric(s). Quantify your achievements (e.g. "Reduced API latency by 35%", "Scaled to 50k active users").`
+    });
+  }
+
+  if (matchedCoreSkills.length >= Math.ceil(roleConfig.mustHave.length * 0.75)) {
+    feedback.push({
+      type: "positive",
+      title: "High Core Skill Keyword Alignment",
+      detail: `Your resume matches ${matchedCoreSkills.length} of ${roleConfig.mustHave.length} core competencies for ${roleConfig.name}.`
+    });
+  } else {
+    feedback.push({
+      type: "missing_skills",
+      title: "Critical Keyword Gaps Detected",
+      detail: `Missing ${missingCoreSkills.length} required keywords for ${roleConfig.name}: ${missingCoreSkills.slice(0, 5).join(", ")}. Add these to your Skills and Experience sections.`
+    });
+  }
+
+  if (detectedVerbs.length >= 4) {
+    feedback.push({
+      type: "positive",
+      title: "Impactful Action Verbs Used",
+      detail: `Found strong action verbs: "${detectedVerbs.slice(0, 4).join('", "')}". Demonstrates ownership and technical leadership.`
+    });
+  } else {
+    feedback.push({
+      type: "suggestion",
+      title: "Strengthen Bullet Point Verbs",
+      detail: `Start your bullet points with high-impact engineering verbs such as "Architected", "Spearheaded", "Optimized", or "Engineered".`
+    });
+  }
+
+  if (!hasLinkedIn || !hasGitHub) {
+    const missing = [];
+    if (!hasLinkedIn) missing.push("LinkedIn");
+    if (!hasGitHub) missing.push("GitHub");
+    feedback.push({
+      type: "warning",
+      title: "Missing Online Profile Links",
+      detail: `No ${missing.join(" or ")} profile link found. Tech recruiters actively check GitHub and LinkedIn profiles.`
+    });
+  }
+
+  const allMatched = [...matchedCoreSkills, ...matchedGoodToHave];
+  const allMissing = [...missingCoreSkills, ...missingGoodToHave];
+
   return {
     id: "res_" + Date.now(),
-    score: 82,
+    score: totalScore,
     targetRole,
     analysis: {
-      score: 82,
-      atsCompatibility: "Excellent",
-      matchedKeywords: matched,
-      missingKeywords: missing,
-      wordCount: resumeText.split(/\s+/).length,
-      feedback: [
-        { type: "positive", title: "Strong Core Tech Skills", detail: `Matches key requirements for ${targetRole}.` },
-        { type: "warning", title: "Add Quantifiable Metrics", detail: "Incorporate metrics (e.g. reduced load time by 40%) to maximize ATS rank." },
-        { type: "missing_skills", title: "Recommended Skill Additions", detail: `Consider highlighting Docker & MongoDB.` }
-      ],
-      summary: `Analyzed resume text for ${targetRole} with an 82% compatibility rating.`
+      score: totalScore,
+      atsCompatibility,
+      matchedKeywords: allMatched,
+      missingKeywords: allMissing.slice(0, 8),
+      detectedVerbs,
+      detectedMetrics,
+      detectedSections,
+      wordCount,
+      sectionBreakdown: {
+        keywordScore: `${keywordScore} / 35`,
+        impactScore: `${impactScore} / 25`,
+        verbScore: `${verbScore} / 15`,
+        contactScore: `${contactScore} / 15`,
+        structureScore: `${structureScore} / 10`
+      },
+      feedback,
+      summary: `Resume parsed for ${roleConfig.name} with ${totalScore}% ATS readiness rating. Found ${allMatched.length} skills, ${detectedMetrics.length} metrics, and ${detectedVerbs.length} action verbs.`
     }
   };
 }

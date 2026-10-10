@@ -19,10 +19,12 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { api } from "../services/api";
 
-// Set up pdf.js worker URL
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+// Set up local pdf.js worker URL through Vite
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
 
 const SAMPLE_RESUMES = {
   "Fullstack Engineer": `Alex Dev
@@ -92,17 +94,33 @@ export function ResumeAnalyzer({ user, onScoreUpdate }) {
         fullText += pageText + "\n";
       }
 
-      if (fullText.trim().length > 30) {
-        setResumeText(fullText.trim());
-      } else {
-        throw new Error("Empty text extracted from PDF");
+      const cleanText = fullText.replace(/\s+/g, " ").trim();
+      if (cleanText.length > 25) {
+        setResumeText(cleanText);
+        return;
       }
+      throw new Error("Empty text from pdfjs");
     } catch (err) {
-      console.warn("PDF extraction fallback:", err);
-      // Read plain file fallback
-      const reader = new FileReader();
-      reader.onload = (e) => setResumeText(e.target.result || SAMPLE_RESUMES[targetRole]);
-      reader.readAsText(file);
+      console.warn("pdfjs extraction issue, running binary stream decoder fallback:", err);
+      // Secondary fallback: extract readable text from PDF binary chunks
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const decoder = new TextDecoder("utf-8", { fatal: false });
+        const rawString = decoder.decode(arrayBuffer);
+        const matches = rawString.match(/[A-Za-z0-9@.,:+\-/#]{2,}(\s+[A-Za-z0-9@.,:+\-/#]{2,})*/g) || [];
+        const extracted = matches
+          .filter(chunk => chunk.length > 3 && !chunk.startsWith("obj") && !chunk.startsWith("endobj"))
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        if (extracted.length > 30) {
+          setResumeText(extracted);
+          return;
+        }
+      } catch (fallbackErr) {
+        console.error("Binary fallback failed:", fallbackErr);
+      }
     } finally {
       setExtractingPdf(false);
     }
@@ -112,12 +130,12 @@ export function ResumeAnalyzer({ user, onScoreUpdate }) {
     if (!file) return;
     setUploadedFileName(file.name);
 
-    if (file.name.endsWith(".pdf")) {
+    if (file.name.toLowerCase().endsWith(".pdf")) {
       await extractPdfText(file);
     } else {
       const reader = new FileReader();
       reader.onload = (e) => {
-        if (e.target.result) {
+        if (e.target.result && typeof e.target.result === "string") {
           setResumeText(e.target.result);
         }
       };

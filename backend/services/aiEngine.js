@@ -365,40 +365,194 @@ function analyzeResume(resumeText, targetRole = "Fullstack Engineer") {
   };
 }
 
-// Generate Mock Interview Questions
-function generateInterviewQuestions(role = "Fullstack Engineer", category = "All", count = 4) {
-  const questionPool = [
-    {
-      id: "q1",
-      category: "Technical",
-      question: `How do you optimize state management and rendering performance in a large-scale ${role} application?`,
-      hint: "Discuss React memoization, state colocation, virtual lists, or database query indexes.",
-      idealAnswerKeywords: ["memo", "useCallback", "state colocation", "indexing", "caching", "lazy loading"]
-    },
-    {
-      id: "q2",
-      category: "System Design",
-      question: "Design a high-throughput authentication system using JWTs and Refresh Tokens. How do you handle token revocation?",
-      hint: "Explain short-lived access tokens, stored refresh tokens in Redis / HTTP-only cookies, and blacklist strategies.",
-      idealAnswerKeywords: ["refresh token", "HTTP-only", "Redis", "expiry", "revoke", "short-lived"]
-    },
-    {
-      id: "q3",
-      category: "Behavioral",
-      question: "Describe a complex bug or performance bottleneck you encountered. How did you diagnose and resolve it under pressure?",
-      hint: "Use the STAR method (Situation, Task, Action, Result) with specific metrics.",
-      idealAnswerKeywords: ["STAR", "profiling", "root cause", "metrics", "team communication", "resolution"]
-    },
-    {
-      id: "q4",
-      category: "System Design",
-      question: "How would you architect an AI-driven background processing pipeline that scales asynchronously?",
-      hint: "Discuss message queues (RabbitMQ/BullMQ), worker threads, rate limiting, and exponential backoff.",
-      idealAnswerKeywords: ["queue", "asynchronous", "worker", "rate limit", "backoff", "resilience"]
-    }
-  ];
+// Comprehensive Mock Interview Question Library across engineering roles & categories
+const INTERVIEW_QUESTIONS_DATABASE = [
+  // Fullstack Questions
+  {
+    id: "fs_1",
+    roles: ["Fullstack Engineer"],
+    category: "Technical",
+    difficulty: "Mid-Level",
+    question: "How do you optimize state management and rendering performance in a large-scale React and Node.js application?",
+    hint: "Discuss React memoization, selective re-renders, state colocation, server-side caching, and database query indexing.",
+    idealAnswerKeywords: ["memo", "useCallback", "colocation", "indexing", "caching", "lazy loading"]
+  },
+  {
+    id: "fs_2",
+    roles: ["Fullstack Engineer", "Backend Engineer"],
+    category: "System Design",
+    difficulty: "Senior",
+    question: "Design a high-throughput authentication system using JWTs and Refresh Tokens. How do you handle token revocation and CSRF protection?",
+    hint: "Explain short-lived access tokens, stored refresh tokens in Redis or HTTP-only SameSite cookies, and token blacklist strategies.",
+    idealAnswerKeywords: ["refresh token", "HTTP-only", "SameSite", "Redis", "expiry", "blacklist"]
+  },
+  {
+    id: "fs_3",
+    roles: ["Fullstack Engineer", "Frontend Engineer", "Backend Engineer"],
+    category: "Behavioral",
+    difficulty: "All Levels",
+    question: "Describe a critical production bug or performance outage you resolved under tight time pressure. How did you diagnose and prevent recurrence?",
+    hint: "Use the STAR method: describe the root cause analysis, logging/monitoring tools used, team communication, and the permanent automated fix.",
+    idealAnswerKeywords: ["STAR", "profiling", "logs", "root cause", "post-mortem", "metrics"]
+  },
+  {
+    id: "fs_4",
+    roles: ["Fullstack Engineer", "Backend Engineer"],
+    category: "System Design",
+    difficulty: "Senior",
+    question: "How would you architect an AI-driven background processing pipeline that handles 10,000 asynchronous resume parsings concurrently?",
+    hint: "Discuss message queues (BullMQ/RabbitMQ/Kafka), worker node clustering, rate limiting, and exponential retry backoff.",
+    idealAnswerKeywords: ["message queue", "BullMQ", "workers", "rate limiting", "backoff", "dead letter queue"]
+  },
+  {
+    id: "fs_5",
+    roles: ["Fullstack Engineer"],
+    category: "Technical",
+    difficulty: "Junior",
+    question: "Explain the difference between SQL and NoSQL databases. When would you choose MongoDB over PostgreSQL in a project?",
+    hint: "Compare relational schemas, ACID transactions, vs flexible document hierarchies, horizontal sharding, and rapid prototyping.",
+    idealAnswerKeywords: ["ACID", "schema", "relational", "document", "sharding", "MongoDB", "Postgres"]
+  },
 
-  return questionPool;
+  // Frontend Questions
+  {
+    id: "fe_1",
+    roles: ["Frontend Engineer"],
+    category: "Technical",
+    difficulty: "Senior",
+    question: "How do you optimize Core Web Vitals, specifically Largest Contentful Paint (LCP) and Interaction to Next Paint (INP), in a modern web application?",
+    hint: "Cover image fetchpriority, critical CSS inlining, font-display optional, reducing main thread blocking, and React transitions.",
+    idealAnswerKeywords: ["LCP", "INP", "fetchpriority", "code splitting", "useTransition", "main thread"]
+  },
+  {
+    id: "fe_2",
+    roles: ["Frontend Engineer"],
+    category: "Technical",
+    difficulty: "Mid-Level",
+    question: "Explain the React reconciliation algorithm and how the Virtual DOM uses keys to diff elements efficiently.",
+    hint: "Discuss fiber tree traversal, stable key identifiers, avoiding array index as key, and component unmount/remount triggers.",
+    idealAnswerKeywords: ["Fiber", "reconciliation", "keys", "diffing", "virtual dom", "re-render"]
+  },
+  {
+    id: "fe_3",
+    roles: ["Frontend Engineer"],
+    category: "Technical",
+    difficulty: "Junior",
+    question: "What are the key accessibility (a11y) considerations when building a custom accessible Modal or Dialog component from scratch?",
+    hint: "Mention focus trapping, ARIA roles (role='dialog', aria-modal='true'), Esc key listener, and restoring previous focus.",
+    idealAnswerKeywords: ["focus trap", "ARIA", "aria-modal", "Esc key", "keyboard navigation", "screen reader"]
+  },
+  {
+    id: "fe_4",
+    roles: ["Frontend Engineer", "Fullstack Engineer"],
+    category: "Behavioral",
+    difficulty: "Mid-Level",
+    question: "Tell me about a time you disagreed with a UI/UX designer's proposal due to technical or performance constraints. How did you align?",
+    hint: "Focus on proactive collaboration, presenting user-first benchmark data, prototyping a middle ground, and achieving stakeholder buy-in.",
+    idealAnswerKeywords: ["collaboration", "trade-off", "performance data", "prototype", "alignment"]
+  },
+
+  // Backend Questions
+  {
+    id: "be_1",
+    roles: ["Backend Engineer"],
+    category: "Technical",
+    difficulty: "Senior",
+    question: "How does the Node.js Event Loop handle asynchronous I/O? What happens when you execute CPU-intensive computation on the main thread?",
+    hint: "Explain the libuv thread pool, phases of event loop (timers, poll, check), thread blocking, and offloading with Worker Threads.",
+    idealAnswerKeywords: ["libuv", "event loop", "worker threads", "thread pool", "non-blocking", "cluster"]
+  },
+  {
+    id: "be_2",
+    roles: ["Backend Engineer"],
+    category: "System Design",
+    difficulty: "Senior",
+    question: "Design a distributed rate-limiter that allows 100 requests per minute per IP address across 10 API server instances.",
+    hint: "Discuss sliding window counters vs token bucket in Redis, Lua scripts for atomicity, and handling clock drift.",
+    idealAnswerKeywords: ["sliding window", "token bucket", "Redis", "Lua script", "distributed", "atomic"]
+  },
+  {
+    id: "be_3",
+    roles: ["Backend Engineer"],
+    category: "Technical",
+    difficulty: "Mid-Level",
+    question: "How do database indexes work internally (B-Trees vs Hash indexes), and what are the trade-offs of adding multiple indexes to a table?",
+    hint: "Explain B-Tree search complexity O(log N), composite indexes, column cardinality, and the penalty on INSERT/UPDATE/DELETE operations.",
+    idealAnswerKeywords: ["B-Tree", "composite index", "cardinality", "write penalty", "O(log n)", "table scan"]
+  },
+
+  // Data Science & AI Questions
+  {
+    id: "ds_1",
+    roles: ["Data Scientist"],
+    category: "Technical",
+    difficulty: "Senior",
+    question: "How do you detect and mitigate overfitting in deep neural networks and tree-based gradient boosted models?",
+    hint: "Discuss L1/L2 regularization, dropout, early stopping, cross-validation, pruning, and hyperparameter tuning.",
+    idealAnswerKeywords: ["regularization", "dropout", "early stopping", "cross-validation", "pruning", "bias-variance"]
+  },
+  {
+    id: "ds_2",
+    roles: ["Data Scientist"],
+    category: "System Design",
+    difficulty: "Mid-Level",
+    question: "How would you design a real-time recommendation engine that serves personalized results with under 50ms latency?",
+    hint: "Explain candidate retrieval (approximate nearest neighbor / Vector DBs), two-stage ranking, and feature store caching.",
+    idealAnswerKeywords: ["vector database", "embeddings", "ANN", "two-stage ranking", "latency", "caching"]
+  },
+
+  // DevOps Questions
+  {
+    id: "do_1",
+    roles: ["DevOps Engineer"],
+    category: "Technical",
+    difficulty: "Senior",
+    question: "Explain the architecture of a Kubernetes cluster. What role do etcd, the kube-apiserver, and kube-scheduler play in pod lifecycle?",
+    hint: "Detail control plane components, consensus in etcd, state reconciliation loop, and node kubelet interactions.",
+    idealAnswerKeywords: ["etcd", "kube-apiserver", "scheduler", "kubelet", "control plane", "reconciliation"]
+  },
+  {
+    id: "do_2",
+    roles: ["DevOps Engineer"],
+    category: "System Design",
+    difficulty: "Mid-Level",
+    question: "How do you design a zero-downtime CI/CD deployment pipeline using Blue/Green or Canary deployment strategies?",
+    hint: "Compare Blue/Green routing vs gradual Canary traffic shifting, automated rollback upon error budget degradation, and health checks.",
+    idealAnswerKeywords: ["Canary", "Blue-Green", "traffic shifting", "health check", "rollback", "Prometheus"]
+  }
+];
+
+// Generate Mock Interview Questions with dynamic filtering and random shuffling
+function generateInterviewQuestions(role = "Fullstack Engineer", category = "All", difficulty = "All", count = 4) {
+  const roleLower = (role || "").toLowerCase();
+
+  // Filter pool matching role
+  let matchingPool = INTERVIEW_QUESTIONS_DATABASE.filter(q => {
+    const matchesRole = q.roles.some(r => r.toLowerCase().includes(roleLower) || roleLower.includes(r.toLowerCase())) ||
+      q.roles.includes("Fullstack Engineer");
+
+    const matchesCategory = (!category || category === "All" || category === "All Categories") 
+      ? true 
+      : q.category.toLowerCase() === category.toLowerCase();
+
+    const matchesDiff = (!difficulty || difficulty === "All" || difficulty === "All Levels")
+      ? true
+      : q.difficulty === "All Levels" || q.difficulty.toLowerCase().includes(difficulty.toLowerCase());
+
+    return matchesRole && matchesCategory && matchesDiff;
+  });
+
+  // Fallback to broader pool if too few
+  if (matchingPool.length < count) {
+    matchingPool = INTERVIEW_QUESTIONS_DATABASE.filter(q => {
+      if (!category || category === "All" || category === "All Categories") return true;
+      return q.category.toLowerCase() === category.toLowerCase();
+    });
+  }
+
+  // Shuffle array randomly
+  const shuffled = [...matchingPool].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
 }
 
 // Evaluate Interview Answer

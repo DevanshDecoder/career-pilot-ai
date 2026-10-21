@@ -41,8 +41,8 @@ router.post("/analyze-resume", (req, res) => {
 // Generate Interview Questions
 router.post("/interview-questions", (req, res) => {
   try {
-    const { role, category, count } = req.body;
-    const questions = generateInterviewQuestions(role || "Fullstack Engineer", category, count || 4);
+    const { role, category, difficulty, count } = req.body;
+    const questions = generateInterviewQuestions(role || "Fullstack Engineer", category, difficulty || "All", count || 4);
     return res.json({
       success: true,
       role: role || "Fullstack Engineer",

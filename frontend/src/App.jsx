@@ -5,44 +5,113 @@ import { ResumeAnalyzer } from "./components/ResumeAnalyzer";
 import { MockInterviewStudio } from "./components/MockInterviewStudio";
 import { SkillRoadmap } from "./components/SkillRoadmap";
 import { AuthGate } from "./components/AuthGate";
+import { api } from "./services/api";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [user, setUser] = useState(null);
   const [loadingInitialAuth, setLoadingInitialAuth] = useState(true);
 
-  // Global state metrics
-  const [resumeScore, setResumeScore] = useState(82);
-  const [interviewScore, setInterviewScore] = useState(88);
-  const [roadmapProgress, setRoadmapProgress] = useState(35);
+  // Global state metrics - initialized to 0 and synced with real user account
+  const [resumeScore, setResumeScore] = useState(0);
+  const [interviewScore, setInterviewScore] = useState(0);
+  const [roadmapProgress, setRoadmapProgress] = useState(0);
 
   useEffect(() => {
-    // Check local storage for existing authenticated user session
-    const savedUser = localStorage.getItem("careerpilot_user");
-    const savedToken = localStorage.getItem("careerpilot_token");
+    async function loadUserSession() {
+      // Check local storage for existing authenticated user session
+      const savedUserStr = localStorage.getItem("careerpilot_user");
+      const savedToken = localStorage.getItem("careerpilot_token");
 
-    if (savedUser && savedToken) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error("Failed to parse user session", e);
-        localStorage.removeItem("careerpilot_user");
-        localStorage.removeItem("careerpilot_token");
+      if (savedUserStr && savedToken) {
+        try {
+          const parsed = JSON.parse(savedUserStr);
+          setUser(parsed);
+          setResumeScore(parsed.resumeScore || 0);
+          setInterviewScore(parsed.interviewScore || 0);
+          setRoadmapProgress(parsed.roadmapProgress || 0);
+
+          // Fetch fresh updated user stats from database
+          const freshUser = await api.getMe();
+          if (freshUser) {
+            setUser(freshUser);
+            setResumeScore(freshUser.resumeScore || 0);
+            setInterviewScore(freshUser.interviewScore || 0);
+            setRoadmapProgress(freshUser.roadmapProgress || 0);
+            localStorage.setItem("careerpilot_user", JSON.stringify(freshUser));
+          }
+        } catch (e) {
+          console.error("Failed to parse user session", e);
+          localStorage.removeItem("careerpilot_user");
+          localStorage.removeItem("careerpilot_token");
+        }
       }
+      setLoadingInitialAuth(false);
     }
-    setLoadingInitialAuth(false);
+
+    loadUserSession();
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("careerpilot_token");
     localStorage.removeItem("careerpilot_user");
     setUser(null);
+    setResumeScore(0);
+    setInterviewScore(0);
+    setRoadmapProgress(0);
     setActiveTab("dashboard");
   };
 
   const handleAuthSuccess = (authenticatedUser) => {
     setUser(authenticatedUser);
+    setResumeScore(authenticatedUser.resumeScore || 0);
+    setInterviewScore(authenticatedUser.interviewScore || 0);
+    setRoadmapProgress(authenticatedUser.roadmapProgress || 0);
+    localStorage.setItem("careerpilot_user", JSON.stringify(authenticatedUser));
     setActiveTab("dashboard");
+  };
+
+  const handleResumeScoreUpdate = async (newScore, analysisData) => {
+    setResumeScore(newScore);
+    const updatedUser = {
+      ...user,
+      resumeScore: newScore,
+      lastResumeAnalysis: analysisData || user?.lastResumeAnalysis
+    };
+    setUser(updatedUser);
+    localStorage.setItem("careerpilot_user", JSON.stringify(updatedUser));
+    await api.updateUserStats({
+      resumeScore: newScore,
+      lastResumeAnalysis: analysisData || user?.lastResumeAnalysis
+    });
+  };
+
+  const handleInterviewScoreUpdate = async (newScore) => {
+    setInterviewScore(newScore);
+    const updatedUser = {
+      ...user,
+      interviewScore: newScore
+    };
+    setUser(updatedUser);
+    localStorage.setItem("careerpilot_user", JSON.stringify(updatedUser));
+    await api.updateUserStats({
+      interviewScore: newScore
+    });
+  };
+
+  const handleRoadmapProgressUpdate = async (newProgress, completedNodesList) => {
+    setRoadmapProgress(newProgress);
+    const updatedUser = {
+      ...user,
+      roadmapProgress: newProgress,
+      completedNodes: completedNodesList || user?.completedNodes || []
+    };
+    setUser(updatedUser);
+    localStorage.setItem("careerpilot_user", JSON.stringify(updatedUser));
+    await api.updateUserStats({
+      roadmapProgress: newProgress,
+      completedNodes: completedNodesList || user?.completedNodes || []
+    });
   };
 
   if (loadingInitialAuth) {
@@ -58,7 +127,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
       
-      {/* Top Glass Navigation */}
+      {/* Top Navigation */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -88,21 +157,21 @@ export default function App() {
             {activeTab === "resume" && (
               <ResumeAnalyzer
                 user={user}
-                onScoreUpdate={(score) => setResumeScore(score)}
+                onScoreUpdate={handleResumeScoreUpdate}
               />
             )}
 
             {activeTab === "interview" && (
               <MockInterviewStudio
                 user={user}
-                onScoreUpdate={(score) => setInterviewScore(score)}
+                onScoreUpdate={handleInterviewScoreUpdate}
               />
             )}
 
             {activeTab === "roadmap" && (
               <SkillRoadmap
                 user={user}
-                onProgressUpdate={(prog) => setRoadmapProgress(prog)}
+                onProgressUpdate={handleRoadmapProgressUpdate}
               />
             )}
           </>

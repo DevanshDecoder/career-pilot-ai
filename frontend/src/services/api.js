@@ -134,20 +134,72 @@ export const api = {
   },
 
   async register(name, email, password, targetRole) {
+    let res;
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password, targetRole })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Registration failed");
-      return data;
-    } catch (err) {
-      console.warn("Backend API offline, using client-side registration fallback:", err.message);
-      const mockUser = { id: "usr_" + Date.now(), name, email, targetRole: targetRole || "Fullstack Engineer" };
+    } catch (networkErr) {
+      console.warn("Backend API offline, using client-side registration fallback:", networkErr.message);
+      const mockUser = { 
+        id: "usr_" + Date.now(), 
+        name, 
+        email, 
+        targetRole: targetRole || "Fullstack Engineer",
+        resumeScore: 0,
+        interviewScore: 0,
+        roadmapProgress: 0
+      };
       const mockToken = "mock_jwt_token_" + Date.now();
       return { token: mockToken, user: mockUser };
+    }
+
+    const data = await res.json();
+    if (!res.ok) {
+      const err = new Error(data.error || "Registration failed");
+      err.code = data.code || (res.status === 409 ? "USER_ALREADY_EXISTS" : "REGISTRATION_ERROR");
+      throw err;
+    }
+    return data;
+  },
+
+  // Update user stats (scores & progress)
+  async updateUserStats(stats) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/update-stats`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          ...getAuthHeader()
+        },
+        body: JSON.stringify(stats)
+      });
+      const data = await res.json();
+      return data.user || null;
+    } catch (err) {
+      console.warn("Could not sync stats to backend:", err);
+      return null;
+    }
+  },
+
+  // Get Current User Profile (Fresh from backend/database)
+  async getMe() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/me`, {
+        method: "GET",
+        headers: { 
+          "Content-Type": "application/json",
+          ...getAuthHeader()
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fetch user");
+      return data.user;
+    } catch (err) {
+      console.warn("Could not fetch user /me:", err.message);
+      return null;
     }
   },
 
@@ -172,7 +224,7 @@ export const api = {
   },
 
   // AI Interview Questions
-  async getInterviewQuestions(role, category) {
+  async getInterviewQuestions(role, category, difficulty) {
     try {
       const res = await fetch(`${API_BASE_URL}/ai/interview-questions`, {
         method: "POST",
@@ -180,13 +232,13 @@ export const api = {
           "Content-Type": "application/json",
           ...getAuthHeader()
         },
-        body: JSON.stringify({ role, category })
+        body: JSON.stringify({ role, category, difficulty })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to fetch questions");
       return data.questions;
     } catch (err) {
-      return fallbackInterviewQuestions(role);
+      return fallbackInterviewQuestions(role, category, difficulty);
     }
   },
 
@@ -407,30 +459,87 @@ function dynamicClientAnalyzeResume(resumeText, targetRole = "Fullstack Engineer
   };
 }
 
-function fallbackInterviewQuestions(role) {
-  return [
-    {
-      id: "q1",
-      category: "Technical",
-      question: `How do you optimize state management and rendering performance in a large-scale ${role} application?`,
-      hint: "Discuss React memoization, state colocation, virtual lists, or database query indexes.",
-      idealAnswerKeywords: ["memo", "useCallback", "indexing", "caching", "lazy loading"]
-    },
-    {
-      id: "q2",
-      category: "System Design",
-      question: "Design a high-throughput authentication system using JWTs and Refresh Tokens. How do you handle token revocation?",
-      hint: "Explain short-lived access tokens, stored refresh tokens in Redis / HTTP-only cookies, and blacklist strategies.",
-      idealAnswerKeywords: ["refresh token", "HTTP-only", "Redis", "expiry", "revoke"]
-    },
-    {
-      id: "q3",
-      category: "Behavioral",
-      question: "Describe a complex bug or performance bottleneck you encountered. How did you diagnose and resolve it under pressure?",
-      hint: "Use the STAR method (Situation, Task, Action, Result) with specific metrics.",
-      idealAnswerKeywords: ["STAR", "profiling", "root cause", "metrics", "resolution"]
-    }
-  ];
+const CLIENT_INTERVIEW_POOL = [
+  {
+    id: "cl_1",
+    roles: ["Fullstack Engineer"],
+    category: "Technical",
+    difficulty: "Mid-Level",
+    question: "How do you optimize state management and rendering performance in a large-scale React and Node.js application?",
+    hint: "Discuss React memoization, selective re-renders, state colocation, server-side caching, and database query indexing.",
+    idealAnswerKeywords: ["memo", "useCallback", "colocation", "indexing", "caching", "lazy loading"]
+  },
+  {
+    id: "cl_2",
+    roles: ["Fullstack Engineer", "Backend Engineer"],
+    category: "System Design",
+    difficulty: "Senior",
+    question: "Design a high-throughput authentication system using JWTs and Refresh Tokens. How do you handle token revocation and CSRF protection?",
+    hint: "Explain short-lived access tokens, stored refresh tokens in Redis or HTTP-only SameSite cookies, and token blacklist strategies.",
+    idealAnswerKeywords: ["refresh token", "HTTP-only", "SameSite", "Redis", "expiry", "blacklist"]
+  },
+  {
+    id: "cl_3",
+    roles: ["Fullstack Engineer", "Frontend Engineer", "Backend Engineer"],
+    category: "Behavioral",
+    difficulty: "All Levels",
+    question: "Describe a critical production bug or performance outage you resolved under tight time pressure. How did you diagnose and prevent recurrence?",
+    hint: "Use the STAR method: describe the root cause analysis, logging/monitoring tools used, team communication, and the permanent automated fix.",
+    idealAnswerKeywords: ["STAR", "profiling", "logs", "root cause", "post-mortem", "metrics"]
+  },
+  {
+    id: "cl_4",
+    roles: ["Frontend Engineer"],
+    category: "Technical",
+    difficulty: "Senior",
+    question: "How do you optimize Core Web Vitals, specifically Largest Contentful Paint (LCP) and Interaction to Next Paint (INP), in a modern web application?",
+    hint: "Cover image fetchpriority, critical CSS inlining, font-display optional, reducing main thread blocking, and React transitions.",
+    idealAnswerKeywords: ["LCP", "INP", "fetchpriority", "code splitting", "useTransition", "main thread"]
+  },
+  {
+    id: "cl_5",
+    roles: ["Backend Engineer"],
+    category: "System Design",
+    difficulty: "Senior",
+    question: "Design a distributed rate-limiter that allows 100 requests per minute per IP address across 10 API server instances.",
+    hint: "Discuss sliding window counters vs token bucket in Redis, Lua scripts for atomicity, and handling clock drift.",
+    idealAnswerKeywords: ["sliding window", "token bucket", "Redis", "Lua script", "distributed", "atomic"]
+  },
+  {
+    id: "cl_6",
+    roles: ["Data Scientist"],
+    category: "Technical",
+    difficulty: "Mid-Level",
+    question: "How do you detect and mitigate overfitting in deep neural networks and tree-based gradient boosted models?",
+    hint: "Discuss L1/L2 regularization, dropout, early stopping, cross-validation, and hyperparameter tuning.",
+    idealAnswerKeywords: ["regularization", "dropout", "early stopping", "cross-validation", "bias-variance"]
+  },
+  {
+    id: "cl_7",
+    roles: ["DevOps Engineer"],
+    category: "Technical",
+    difficulty: "Senior",
+    question: "Explain the architecture of a Kubernetes cluster. What role do etcd, the kube-apiserver, and kube-scheduler play in pod lifecycle?",
+    hint: "Detail control plane components, consensus in etcd, state reconciliation loop, and node kubelet interactions.",
+    idealAnswerKeywords: ["etcd", "kube-apiserver", "scheduler", "kubelet", "control plane"]
+  }
+];
+
+function fallbackInterviewQuestions(role = "Fullstack Engineer", category = "All", difficulty = "All") {
+  const roleLower = role.toLowerCase();
+  let matching = CLIENT_INTERVIEW_POOL.filter(q => {
+    const roleMatch = q.roles.some(r => r.toLowerCase().includes(roleLower) || roleLower.includes(r.toLowerCase())) ||
+      q.roles.includes("Fullstack Engineer");
+    const catMatch = (!category || category === "All" || category === "All Categories") ? true : q.category.toLowerCase() === category.toLowerCase();
+    const diffMatch = (!difficulty || difficulty === "All" || difficulty === "All Levels") ? true : q.difficulty.toLowerCase().includes(difficulty.toLowerCase()) || q.difficulty === "All Levels";
+    return roleMatch && catMatch && diffMatch;
+  });
+
+  if (matching.length < 4) {
+    matching = CLIENT_INTERVIEW_POOL;
+  }
+
+  return [...matching].sort(() => 0.5 - Math.random()).slice(0, 4);
 }
 
 function fallbackEvaluateAnswer(userAnswer) {

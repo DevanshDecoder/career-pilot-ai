@@ -24,7 +24,7 @@ export function Navbar({ activeTab, setActiveTab, user, onOpenAuth, onLogout }) 
   ];
 
   return (
-    <header className="sticky top-0 z-50 glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3">
+    <header className="sticky top-0 z-50 bg-[#0b0f19] border-b border-slate-800 shadow-md shadow-black/30 px-4 lg:px-8 py-3 transition-colors">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         
         {/* Brand Logo */}

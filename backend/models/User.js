@@ -21,6 +21,26 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: "Fullstack Engineer"
   },
+  resumeScore: {
+    type: Number,
+    default: 0
+  },
+  interviewScore: {
+    type: Number,
+    default: 0
+  },
+  roadmapProgress: {
+    type: Number,
+    default: 0
+  },
+  completedNodes: {
+    type: [String],
+    default: []
+  },
+  lastResumeAnalysis: {
+    type: Object,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

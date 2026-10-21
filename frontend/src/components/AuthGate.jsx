@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   Zap,
   LogIn,
-  UserPlus
+  UserPlus,
+  UserCheck
 } from "lucide-react";
 import { api } from "../services/api";
 
@@ -27,6 +28,7 @@ export function AuthGate({ onAuthSuccess }) {
   const [targetRole, setTargetRole] = useState("Fullstack Engineer");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showAlreadyRegisteredModal, setShowAlreadyRegisteredModal] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,7 +48,11 @@ export function AuthGate({ onAuthSuccess }) {
         onAuthSuccess(data.user);
       }
     } catch (err) {
-      setError(err.message || (isRegister ? "Registration failed" : "Login failed"));
+      if (isRegister && (err.code === "USER_ALREADY_EXISTS" || err.message?.toLowerCase().includes("already registered") || err.message?.toLowerCase().includes("already exists"))) {
+        setShowAlreadyRegisteredModal(true);
+      } else {
+        setError(err.message || (isRegister ? "Registration failed" : "Login failed"));
+      }
     } finally {
       setLoading(false);
     }
@@ -311,6 +317,53 @@ export function AuthGate({ onAuthSuccess }) {
         </div>
 
       </div>
+
+      {/* Already Registered Pop-up Modal */}
+      {showAlreadyRegisteredModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-md p-6 sm:p-8 rounded-3xl bg-slate-900 border border-amber-500/40 shadow-2xl space-y-5 text-center">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <UserCheck className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-extrabold text-white font-outfit">
+                Account Already Registered!
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                An account with email <strong className="text-amber-400 underline">{email}</strong> already exists in CareerPilot AI.
+              </p>
+              <p className="text-xs text-slate-400">
+                You do not need to register again. Would you like to sign in directly?
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAlreadyRegisteredModal(false);
+                  setIsRegister(false);
+                  setError("");
+                }}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 hover:opacity-95 transition-all cursor-pointer"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Sign In to Your Account</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAlreadyRegisteredModal(false)}
+                className="py-3 px-4 rounded-xl bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

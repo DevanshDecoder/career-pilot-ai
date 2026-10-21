@@ -20,7 +20,18 @@ export function SkillRoadmap({ user, onProgressUpdate }) {
   const [timeframe, setTimeframe] = useState("3 Months");
   const [loading, setLoading] = useState(false);
   const [roadmapData, setRoadmapData] = useState(null);
-  const [completedNodes, setCompletedNodes] = useState(new Set(["phase1-node0", "phase1-node1"]));
+  const [completedNodes, setCompletedNodes] = useState(() => {
+    if (user?.completedNodes && Array.isArray(user.completedNodes) && user.completedNodes.length > 0) {
+      return new Set(user.completedNodes);
+    }
+    return new Set(["phase1-node0", "phase1-node1"]);
+  });
+
+  useEffect(() => {
+    if (user?.completedNodes && Array.isArray(user.completedNodes)) {
+      setCompletedNodes(new Set(user.completedNodes));
+    }
+  }, [user?.completedNodes]);
 
   useEffect(() => {
     fetchRoadmap(targetRole, timeframe);
@@ -52,7 +63,7 @@ export function SkillRoadmap({ user, onProgressUpdate }) {
       const totalCount = roadmapData.phases.reduce((acc, p) => acc + p.nodes.length, 0);
       const newProgress = Math.round((next.size / totalCount) * 100);
       if (onProgressUpdate) {
-        onProgressUpdate(newProgress);
+        onProgressUpdate(newProgress, Array.from(next));
       }
     }
   };

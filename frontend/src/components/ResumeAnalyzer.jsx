@@ -68,9 +68,15 @@ export function ResumeAnalyzer({ user, onScoreUpdate }) {
   const [dragActive, setDragActive] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [extractingPdf, setExtractingPdf] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState(user?.lastResumeAnalysis || null);
 
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (user?.lastResumeAnalysis && !result) {
+      setResult(user.lastResumeAnalysis);
+    }
+  }, [user]);
 
   const handleRoleChange = (newRole) => {
     setTargetRole(newRole);
@@ -183,7 +189,7 @@ export function ResumeAnalyzer({ user, onScoreUpdate }) {
       const data = await api.analyzeResume(resumeText, targetRole);
       setResult(data);
       if (onScoreUpdate && data.analysis?.score) {
-        onScoreUpdate(data.analysis.score);
+        onScoreUpdate(data.analysis.score, data);
       }
 
       if (data.analysis?.score >= 80) {
@@ -193,6 +199,13 @@ export function ResumeAnalyzer({ user, onScoreUpdate }) {
           origin: { y: 0.6 }
         });
       }
+
+      setTimeout(() => {
+        const elem = document.getElementById("ats-analysis-result");
+        if (elem && window.innerWidth < 1024) {
+          elem.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 150);
     } catch (err) {
       console.error(err);
     } finally {
@@ -235,11 +248,11 @@ export function ResumeAnalyzer({ user, onScoreUpdate }) {
       </div>
 
       {/* Main Grid: Input Form vs AI Results */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
         
         {/* Left Column: Drag & Drop Zone + Resume Text Editor */}
-        <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-5 flex flex-col justify-between">
-          <div className="space-y-4">
+        <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-3.5">
+          <div className="space-y-3.5">
             
             {/* Drag & Drop Dropzone */}
             <div
@@ -248,7 +261,7 @@ export function ResumeAnalyzer({ user, onScoreUpdate }) {
               onDragOver={handleDrag}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`relative p-6 rounded-2xl border-2 border-dashed text-center cursor-pointer transition-all duration-300 ${
+              className={`relative p-4 sm:p-5 rounded-2xl border-2 border-dashed text-center cursor-pointer transition-all duration-300 ${
                 dragActive
                   ? "border-indigo-400 bg-indigo-500/20 scale-[1.01]"
                   : uploadedFileName
@@ -288,16 +301,16 @@ export function ResumeAnalyzer({ user, onScoreUpdate }) {
                       e.stopPropagation();
                       clearUploadedFile();
                     }}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-all"
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-all cursor-pointer"
                     title="Remove File"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2 py-2">
-                  <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                    <UploadCloud className="w-6 h-6" />
+                <div className="space-y-1.5 py-1.5">
+                  <div className="w-10 h-10 mx-auto rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <UploadCloud className="w-5 h-5" />
                   </div>
                   <div>
                     <span className="text-xs font-bold text-white">Drag & drop your PDF / Resume file here</span>
@@ -310,7 +323,7 @@ export function ResumeAnalyzer({ user, onScoreUpdate }) {
             </div>
 
             {/* Resume Text Editor */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
                   <FileCheck className="w-4 h-4 text-indigo-400" /> Extracted Text Content ({resumeText.split(/\s+/).filter(Boolean).length} words)
@@ -320,7 +333,7 @@ export function ResumeAnalyzer({ user, onScoreUpdate }) {
                     setUploadedFileName(null);
                     setResumeText(SAMPLE_RESUMES[targetRole] || SAMPLE_RESUMES["Fullstack Engineer"]);
                   }}
-                  className="text-[11px] text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-1 font-medium"
+                  className="text-[11px] text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-1 font-medium cursor-pointer"
                 >
                   <RefreshCw className="w-3 h-3" /> Load Sample Resume
                 </button>
@@ -329,9 +342,9 @@ export function ResumeAnalyzer({ user, onScoreUpdate }) {
               <textarea
                 value={resumeText}
                 onChange={(e) => setResumeText(e.target.value)}
-                rows={10}
+                rows={7}
                 placeholder="Paste or edit your resume text here..."
-                className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 resize-none leading-relaxed"
+                className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 resize-y leading-relaxed"
               />
             </div>
 
@@ -340,7 +353,7 @@ export function ResumeAnalyzer({ user, onScoreUpdate }) {
           <button
             onClick={handleAnalyze}
             disabled={analyzing || !resumeText.trim()}
-            className={`w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold text-sm shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all mt-4 ${
+            className={`w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold text-sm shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all mt-2 cursor-pointer disabled:opacity-50 ${
               analyzing ? "opacity-75 cursor-wait" : "hover:opacity-95"
             }`}
           >
@@ -359,9 +372,9 @@ export function ResumeAnalyzer({ user, onScoreUpdate }) {
         </div>
 
         {/* Right Column: AI Analysis Result Display */}
-        <div className="space-y-6">
+        <div id="ats-analysis-result" className="space-y-4">
           {result ? (
-            <div className="glass-panel p-6 rounded-3xl border border-indigo-500/30 space-y-6 animate-fade-in">
+            <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-indigo-500/30 space-y-5 animate-fade-in">
               
               {/* Score Header Card */}
               <div className="flex items-center justify-between p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950/80 border border-indigo-500/30">

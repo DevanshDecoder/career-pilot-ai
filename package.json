@@ -4,10 +4,10 @@
   "description": "CareerPilot AI Full-Stack Platform Monorepo",
   "main": "backend/server.js",
   "scripts": {
+    "start": "npx concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "dev": "npm start",
     "build": "node build.js",
-    "install:all": "npm install --prefix backend && npm install --prefix frontend",
-    "dev": "npx concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
-    "start": "node backend/server.js"
+    "install:all": "npm install --prefix backend && npm install --prefix frontend"
   },
   "dependencies": {
     "concurrently": "^9.1.2"

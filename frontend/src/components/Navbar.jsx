@@ -5,7 +5,6 @@ import {
   MessageSquareCode, 
   Map, 
   BarChart3, 
-  User, 
   LogOut, 
   ShieldCheck, 
   Lock,

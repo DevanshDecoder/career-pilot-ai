@@ -11,7 +11,6 @@ import {
   MessageSquareCode, 
   Map, 
   ShieldCheck, 
-  CheckCircle2,
   Zap,
   LogIn,
   UserPlus,

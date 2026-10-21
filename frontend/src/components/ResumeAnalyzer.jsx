@@ -13,8 +13,6 @@ import {
   FileCheck,
   Zap,
   Paperclip,
-  BarChart2,
-  TrendingUp,
   Sliders
 } from "lucide-react";
 import confetti from "canvas-confetti";

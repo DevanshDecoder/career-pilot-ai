@@ -3,13 +3,7 @@ import {
   Map, 
   CheckCircle2, 
   Circle, 
-  Sparkles, 
-  Layers, 
-  Calendar, 
-  Code, 
-  ArrowRight, 
   FolderGit2, 
-  CheckSquare, 
   Clock,
   RefreshCw
 } from "lucide-react";

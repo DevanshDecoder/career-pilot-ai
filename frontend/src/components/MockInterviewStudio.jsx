@@ -8,8 +8,6 @@ import {
   Award, 
   RefreshCw, 
   BookOpen,
-  Mic,
-  ChevronRight,
   TrendingUp,
   Brain
 } from "lucide-react";

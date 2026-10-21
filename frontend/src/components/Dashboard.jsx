@@ -1,13 +1,11 @@
 import React from "react";
 import { 
-  Sparkles, 
   TrendingUp, 
   FileText, 
   MessageSquareCode, 
   Map, 
   CheckCircle2, 
   ArrowRight, 
-  Award, 
   Target, 
   Zap, 
   BrainCircuit

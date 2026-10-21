@@ -1,6 +1,12 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const path = require("path");
+const fs = require("fs");
+
+// Load .env from backend/.env or root .env
+require("dotenv").config({ path: path.join(__dirname, ".env") });
+require("dotenv").config({ path: path.join(__dirname, "../.env") });
 require("dotenv").config();
 
 const authRoutes = require("./routes/authRoutes");
@@ -41,6 +47,21 @@ app.get("/api/health", (req, res) => {
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/ai", aiRoutes);
+
+// Serve Frontend Static Build if available
+const possibleDistPaths = [
+  path.join(__dirname, "../frontend/dist"),
+  path.join(__dirname, "../dist")
+];
+const distPath = possibleDistPaths.find((p) => fs.existsSync(p));
+
+if (distPath) {
+  app.use(express.static(distPath));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api/")) return next();
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
 
 // 404 Handler
 app.use((req, res) => {

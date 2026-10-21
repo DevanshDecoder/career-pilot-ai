@@ -1,4 +1,22 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+// Smart API URL resolution for both local dev and production deployments
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  const isBrowser = typeof window !== "undefined";
+  const isLocalhost = isBrowser && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+  // In production (hosted on Render, Vercel, etc.), if envUrl is missing or set to localhost,
+  // use relative origin so requests don't fail against client-side localhost.
+  if (isBrowser && !isLocalhost) {
+    if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+      return envUrl;
+    }
+    return `${window.location.origin}/api`;
+  }
+
+  return envUrl || "http://localhost:5000/api";
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Helper to get stored auth token
 function getAuthHeader() {
